@@ -6,9 +6,10 @@
     <title>FRA Claims Management - FRA Atlas WebGIS</title>
     <link rel="stylesheet" href="../css/main.css" />
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" />
+    <script src="../js/config.js"></script>
 <script type="module" src="https://static.rocket.new/rocket-web.js?_cfg=https%3A%2F%2Ffraatlas6365back.builtwithrocket.new&_be=https%3A%2F%2Fapplication.rocket.new&_v=0.1.8"></script>
 </head>
-<body class="bg-background min-h-screen">
+<body class="bg-background" style="height: 100vh;">
     <!-- Header -->
     <header class="bg-white shadow-md border-b border-border-light">
         <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
@@ -932,7 +933,7 @@
                 // Update processing step
                 document.getElementById('processingStep').textContent = 'Uploading document...';
 
-                const response = await fetch('http://localhost:5002/api/upload-document', {
+                const response = await fetch(`${window.API_BASE}/upload-document`, {
                     method: 'POST',
                     body: formData
                 });
@@ -984,7 +985,7 @@
                     confidence: window.currentOcrData.confidence
                 };
 
-                const response = await fetch('http://localhost:5002/api/save-claim', {
+                const response = await fetch(`${window.API_BASE}/save-claim`, {
                     method: 'POST',
                     headers: {
                         'Content-Type': 'application/json'
@@ -1070,7 +1071,7 @@
         // Load claims from API
         async function loadClaims() {
             try {
-                const response = await fetch('http://localhost:5001/api/claims');
+                const response = await fetch(`${window.API_BASE}/claims`);
                 if (response.ok) {
                     const data = await response.json();
                     updateClaimsTable(data.claims);
@@ -1214,7 +1215,7 @@
 
         async function deleteClaim(claimId) {
             try {
-                const response = await fetch(`http://localhost:5001/api/claims/${claimId}`, {
+                const response = await fetch(`${window.API_BASE}/claims/${claimId}`, {
                     method: 'DELETE'
                 });
 

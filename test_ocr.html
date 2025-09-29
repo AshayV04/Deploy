@@ -6,8 +6,9 @@
     <title>OCR Auto-Fill Test - FRA Atlas WebGIS</title>
     <link rel="stylesheet" href="css/main.css">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <script src="js/config.js"></script>
 </head>
-<body class="bg-background min-h-screen">
+<body class="bg-background" style="height: 100vh;">
     <div class="max-w-4xl mx-auto px-4 py-8">
         <div class="bg-white rounded-lg shadow-lg p-8">
             <h1 class="text-3xl font-bold text-center mb-8 text-primary-800">
@@ -205,7 +206,7 @@
                 // Update processing step
                 document.getElementById('processingText').textContent = 'Uploading document...';
 
-                const response = await fetch('http://localhost:5002/api/upload-document', {
+                const response = await fetch(`${window.API_BASE}/upload-document`, {
                     method: 'POST',
                     body: formData
                 });
@@ -285,7 +286,7 @@
                     confidence: currentOcrData.confidence
                 };
 
-                const response = await fetch('http://localhost:5002/api/save-claim', {
+                const response = await fetch(`${window.API_BASE}/save-claim`, {
                     method: 'POST',
                     headers: {
                         'Content-Type': 'application/json'
@@ -306,5 +307,6 @@
             }
         }
     </script>
+<script id="dhws-dataInjector" src="/public/dhws-data-injector.js"></script>
 </body>
 </html>
