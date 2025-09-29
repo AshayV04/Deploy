@@ -1,7 +1,6 @@
 services:
   - type: static_site
     name: fra-atlas-frontend
-    env: static
     buildCommand: |
       npm install
       npm run build:css
