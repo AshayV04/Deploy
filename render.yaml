@@ -1,5 +1,5 @@
 services:
-  - type: web
+  - type: static
     name: fra-atlas-frontend
     buildCommand: |
       npm install
