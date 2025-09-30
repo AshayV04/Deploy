@@ -1,16 +1,19 @@
 services:
   - type: web
     name: fra-atlas-frontend
+    plan: free
     env: node
     buildCommand: |
       npm install
       npm run build:css
     startCommand: npm run start
+    healthCheckPath: /
     envVars:
       - key: OCR_API_URL
         sync: false
   - type: web
     name: fra-ocr-api
+    plan: free
     env: python
     buildCommand: |
       apt-get update
@@ -18,6 +21,7 @@ services:
       pip install --upgrade pip
       pip install -r OCR/requirements.txt
     startCommand: cd OCR && gunicorn --bind 0.0.0.0:$PORT flask_ocr_api:app
+    healthCheckPath: /api/health
     envVars:
       - key: GEMINI_API_KEY
         sync: false

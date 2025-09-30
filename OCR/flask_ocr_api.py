@@ -38,10 +38,16 @@ POPPLER_PATH = os.environ.get("POPPLER_PATH")
 # ----------------- Gemini API -----------------
 GEMINI_MODEL = os.environ.get("GEMINI_MODEL", "gemini-2.0-flash")
 GEMINI_API_KEY = os.environ.get("GEMINI_API_KEY")
-if not GEMINI_API_KEY:
-    raise RuntimeError("GEMINI_API_KEY environment variable must be set")
+GEMINI_ENABLED = bool(GEMINI_API_KEY)
 
-genai.configure(api_key=GEMINI_API_KEY)
+if GEMINI_ENABLED:
+    try:
+        genai.configure(api_key=GEMINI_API_KEY)
+    except Exception as err:
+        GEMINI_ENABLED = False
+        print(f"Gemini configuration failed: {err}")
+else:
+    print("GEMINI_API_KEY not set; falling back to regex extraction only.")
 
 app = Flask(__name__)
 CORS(app)
@@ -145,6 +151,9 @@ def ocr_pdf_bytes(pdf_bytes: bytes) -> tuple[str, float]:
 
 def human_like_extract_with_gemini(raw_text: str) -> Dict[str, Optional[str]]:
     """Use Gemini to extract structured fields from OCR text"""
+    if not GEMINI_ENABLED:
+        print("Gemini API disabled; skipping structured extraction.")
+        return {}
     prompt = f"""
     You are an expert in interpreting FRA (Forest Rights Act) Claim Forms (Form A). 
     

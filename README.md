@@ -7,7 +7,7 @@ Modern static front-end pages styled with Tailwind CSS coupled with a Flask-base
 - `index.html`, `pages/`, `css/`, `js/` – static client assets
 - `package.json` – Tailwind build scripts and Node server entry point
 - `OCR/` – Flask OCR API (`flask_ocr_api.py`, `requirements.txt`, seed `fra_claims.db`)
-- `.render.yaml` – Render multi-service configuration (Node frontend + API)
+- `render.yaml` – Render multi-service configuration (Node frontend + API)
 
 ## Local Development
 
@@ -34,7 +34,7 @@ python flask_ocr_api.py  # listens on http://localhost:5002 by default
 
 Environment options:
 
-- `GEMINI_API_KEY` (**required**) – Google Gemini key
+- `GEMINI_API_KEY` (optional) – Google Gemini key; without it the API falls back to regex extraction only
 - `GEMINI_MODEL` (default `gemini-2.0-flash`)
 - `DB_FILE` (default `OCR/fra_claims.db`)
 - `TESSERACT_CMD`, `TESSDATA_PREFIX`, `POPPLER_PATH` if you need custom OCR binaries
@@ -42,21 +42,16 @@ Environment options:
 
 ## Deployment on Render
 
-This repo ships with `.render.yaml` so you can click “New Blueprint” in Render and select the repository.
+The repository ships with `render.yaml`, so you can click **New Blueprint** in Render, point to this repo, and provision both services on the free plan.
 
-- **Node Web Service (`fra-atlas-frontend`)**
-  - Build: `npm install && npm run build:css`
-  - Start: `npm run start` (binds to Render's `$PORT` and proxies `/api/*`)
-  - Environment variables:
-    - `OCR_API_URL` (point to the deployed OCR API base, e.g. `https://fra-ocr-api.onrender.com`)
-- **Python Web Service (`fra-ocr-api`)**
-  - Build installs `tesseract-ocr`, `libtesseract-dev`, `poppler-utils`, then `pip install -r OCR/requirements.txt`
-  - Start command: `cd OCR && gunicorn --bind 0.0.0.0:$PORT flask_ocr_api:app`
-  - Environment variables (Render dashboard):
-    - `GEMINI_API_KEY` (mark as secret)
-    - Optional overrides for `DB_FILE`, `GEMINI_MODEL`, etc.
+1. Create a Blueprint from `render.yaml`. Render detects two web services (`fra-atlas-frontend` and `fra-ocr-api`). Keep the default free plan when prompted.
+2. Before deploying, add environment variables:
+   - Frontend: `OCR_API_URL` (leave blank until the API URL is known).
+   - API: optionally set `GEMINI_API_KEY` if you want Gemini-assisted extraction; otherwise the service automatically falls back to regex parsing. You can also override `GEMINI_MODEL`, `DB_FILE`, etc.
+3. Kick off the first deploy. The API's health check is `/api/health`; the frontend uses `/`.
+4. After the API finishes deploying, copy its public URL (e.g. `https://fra-ocr-api.onrender.com`) and set it as `OCR_API_URL` on the frontend service, then redeploy the frontend.
 
-After the first deploy, set `OCR_API_URL` on the frontend service to the deployed OCR API hostname (Render usually assigns `https://fra-ocr-api.onrender.com`).
+Both services build successfully in the Render free tier. The OCR API installs Tesseract and Poppler during the build step and runs under Gunicorn; the frontend serves the static bundle with `http-server` and proxies `/api/*` calls to the Render-hosted OCR API.
 
 ## Post-Deploy Checklist
 
