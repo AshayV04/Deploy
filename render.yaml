@@ -15,9 +15,10 @@ services:
     name: fra-ocr-api
     plan: free
     env: python
+    pythonVersion: 3.11
     buildCommand: |
-      apt-get update
-      apt-get install -y tesseract-ocr libtesseract-dev poppler-utils
+      sudo apt-get update
+      sudo apt-get install -y tesseract-ocr libtesseract-dev poppler-utils
       pip install --upgrade pip
       pip install -r OCR/requirements.txt
     startCommand: cd OCR && gunicorn --bind 0.0.0.0:$PORT flask_ocr_api:app

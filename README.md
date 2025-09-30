@@ -50,6 +50,7 @@ The repository ships with `render.yaml`, so you can click **New Blueprint** in R
    - API: optionally set `GEMINI_API_KEY` if you want Gemini-assisted extraction; otherwise the service automatically falls back to regex parsing. You can also override `GEMINI_MODEL`, `DB_FILE`, etc.
 3. Kick off the first deploy. The API's health check is `/api/health`; the frontend uses `/`.
 4. After the API finishes deploying, copy its public URL (e.g. `https://fra-ocr-api.onrender.com`) and set it as `OCR_API_URL` on the frontend service, then redeploy the frontend.
+   Render runs the OCR service on Python 3.11 as configured in `render.yaml`.
 
 Both services build successfully in the Render free tier. The OCR API installs Tesseract and Poppler during the build step and runs under Gunicorn; the frontend serves the static bundle with `http-server` and proxies `/api/*` calls to the Render-hosted OCR API.
 

@@ -9,9 +9,130 @@
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" />
     <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+
+    <style>
+        /* CHART CONTAINER FIX */
+        /* CHART CONTAINER FIX */
+        /* CHART CONTAINER FIX */
+        .h-64 {
+            height: 300px !important;
+            position: relative;  /* Ensures Chart.js can fit properly */
+        }
+
+        #trendsChart {
+            width: 100% !important;
+            height: 100% !important;
+}
+
+
+
+        canvas {
+            display: block !important;
+        }
+
+        /* Your existing styles... */
+        
+        /* Enhanced Layer Control Styles */
+        .enhanced-layer-control {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+        }
+        
+        .layer-control-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            border-bottom: 1px solid #e5e7eb;
+            margin-bottom: 12px;
+            padding-bottom: 8px;
+        }
+        
+        .layer-control-header h4 {
+            margin: 0;
+            font-size: 14px;
+            font-weight: 600;
+            color: #374151;
+        }
+        
+        .layer-section {
+            margin-bottom: 16px;
+        }
+        
+        .layer-section h5 {
+            margin: 0 0 8px 0;
+            font-size: 12px;
+            font-weight: 600;
+            color: #6b7280;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+        }
+        
+        .layer-options {
+            display: flex;
+            flex-direction: column;
+            gap: 6px;
+        }
+        
+        .layer-option {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            cursor: pointer;
+            padding: 4px;
+            border-radius: 4px;
+            transition: background-color 0.2s;
+        }
+        
+        .layer-option:hover {
+            background-color: #f3f4f6;
+        }
+        
+        .layer-option input[type="radio"],
+        .layer-option input[type="checkbox"] {
+            margin: 0;
+        }
+        
+        .layer-option span {
+            font-size: 12px;
+            color: #374151;
+            flex: 1;
+        }
+        
+        .opacity-controls {
+            display: flex;
+            flex-direction: column;
+            gap: 8px;
+        }
+        
+        .opacity-controls label {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            font-size: 11px;
+            color: #6b7280;
+        }
+        
+        .opacity-controls input[type="range"] {
+            width: 80px;
+        }
+        
+        .custom-div-icon {
+            background: none;
+            border: none;
+            text-align: center;
+        }
+        
+        #toggleLayerControl {
+            background: none;
+            border: none;
+            cursor: pointer;
+            padding: 4px;
+        }
+        </style>
+        
 <script type="module" src="https://static.rocket.new/rocket-web.js?_cfg=https%3A%2F%2Ffraatlas6365back.builtwithrocket.new&_be=https%3A%2F%2Fapplication.rocket.new&_v=0.1.8"></script>
 </head>
-<body class="bg-background min-h-screen">
+<body class="bg-background" style="height: 100vh;">
     <!-- Header -->
     <header class="bg-white shadow-sm border-b border-border-light">
         <div class="px-6 py-4">
@@ -419,11 +540,18 @@
 
     <script>
         // Initialize map
+        
+
         let villageMap;
-        let trendsChart;
+        let baseLayers = {};
+        let overlayLayers = {};
+        let layerControl;
+        let trendsChart; // Keep your existing variable
+
 
         document.addEventListener('DOMContentLoaded', function() {
             initializeMap();
+            createEnhancedLayerControl();
             initializeChart();
             setupEventListeners();
         });
@@ -431,75 +559,307 @@
         function initializeMap() {
             // Initialize Leaflet map
             villageMap = L.map('villageMap').setView([22.5726, 78.9629], 10);
+
+            // ============================================================================
+            // BASE LAYERS (Background maps)
+            // ============================================================================
             
-            // Add tile layer
-            L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
-                attribution: '© OpenStreetMap contributors'
-            }).addTo(villageMap);
-
-            // Add sample markers for FRA claims
-            const sampleClaims = [
-                {lat: 22.5726, lng: 78.9629, title: "Claim #001", status: "Approved"},
-                {lat: 22.5826, lng: 78.9729, title: "Claim #002", status: "Pending"},
-                {lat: 22.5626, lng: 78.9529, title: "Claim #003", status: "Approved"}
-            ];
-
-            sampleClaims.forEach(claim => {
-                const marker = L.marker([claim.lat, claim.lng]).addTo(villageMap);
-                marker.bindPopup(`<b>${claim.title}</b><br>Status: ${claim.status}`);
+            // 1. OpenStreetMap (Default)
+            baseLayers['Street Map'] = L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+                attribution: '© OpenStreetMap contributors',
+                maxZoom: 19
             });
 
-            // Add village boundary (sample polygon)
-            const villageBoundary = L.polygon([
-                [22.5626, 78.9429],
-                [22.5826, 78.9429],
-                [22.5826, 78.9829],
-                [22.5626, 78.9829]
-            ], {
-                color: '#1E40AF',
-                fillColor: '#3B82F6',
-                fillOpacity: 0.2
+            // 2. Satellite Imagery
+            baseLayers['Satellite'] = L.tileLayer('https://mt1.google.com/vt/lyrs=s&x={x}&y={y}&z={z}', {
+                attribution: '© Google',
+                maxZoom: 20
+            });
+
+            // 3. Hybrid (Satellite with labels)
+            baseLayers['Hybrid'] = L.tileLayer('https://mt1.google.com/vt/lyrs=y&x={x}&y={y}&z={z}', {
+                attribution: '© Google',
+                maxZoom: 20
+            });
+
+            // 4. Terrain
+            baseLayers['Terrain'] = L.tileLayer('https://mt1.google.com/vt/lyrs=p&x={x}&y={y}&z={z}', {
+                attribution: '© Google',
+                maxZoom: 15
+            });
+
+            // 5. Topographic
+            baseLayers['Topographic'] = L.tileLayer('https://{s}.tile.opentopomap.org/{z}/{x}/{y}.png', {
+                attribution: 'Map data: © OpenStreetMap contributors, SRTM | Map style: © OpenTopoMap',
+                maxZoom: 17
+            });
+
+            // 6. Esri Satellite
+            baseLayers['Esri Satellite'] = L.tileLayer('https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}', {
+                attribution: 'Tiles © Esri',
+                maxZoom: 19
+            });
+
+            // ============================================================================
+            // OVERLAY LAYERS (Data layers)
+            // ============================================================================
+
+            // 1. Bhuvan Land Use/Land Cover
+            overlayLayers['Land Use (Bhuvan)'] = L.tileLayer.wms('https://bhuvan-vec2.nrsc.gov.in/bhuvan/wms', {
+                layers: 'lulc:OR_LULC50K_1516',
+                format: 'image/png',
+                transparent: true,
+                opacity: 0.7,
+                attribution: '© NRSC/ISRO Bhuvan'
+            });
+
+            // 2. Forest Cover
+            overlayLayers['Forest Cover'] = L.tileLayer.wms('https://bhuvan-vec1.nrsc.gov.in/bhuvan/wms', {
+                layers: 'forest:forest_cover_2019',
+                format: 'image/png',
+                transparent: true,
+                opacity: 0.8,
+                attribution: '© NRSC/ISRO'
+            });
+
+            // 3. Village Boundaries Layer
+            overlayLayers['Village Boundaries'] = L.layerGroup();
+            
+            // 4. FRA Claims Layer
+            overlayLayers['FRA Claims'] = L.layerGroup();
+            
+            // 5. Infrastructure Layer
+            overlayLayers['Infrastructure'] = L.layerGroup();
+
+            // 6. Water Bodies
+            overlayLayers['Water Bodies'] = L.tileLayer.wms('https://bhuvan-vec1.nrsc.gov.in/bhuvan/wms', {
+                layers: 'waterbodies:water_bodies_2018',
+                format: 'image/png',
+                transparent: true,
+                opacity: 0.6,
+                attribution: '© NRSC/ISRO'
+            });
+
+            // Set default base layer
+            baseLayers['Street Map'].addTo(villageMap);
+
+            // Add sample data to layers
+            addSampleData();
+
+            // Add layer control
+            layerControl = L.control.layers(baseLayers, overlayLayers, {
+                position: 'topright',
+                collapsed: false
             }).addTo(villageMap);
 
-            villageBoundary.bindPopup("Khairwani Village Boundary");
+            console.log('Map initialized with full layer system');
         }
 
+        function createEnhancedLayerControl() {
+            // If a custom UI isn't present, fall back to Leaflet's default control
+            const container = document.querySelector('.enhanced-layer-control');
+
+            if (!container) {
+                console.warn('Enhanced layer control container not found; using default Leaflet control');
+                return;
+            }
+
+            container.innerHTML = '';
+
+            const baseSection = document.createElement('div');
+            baseSection.className = 'layer-section';
+            baseSection.innerHTML = '<h5>Base Layers</h5>';
+
+            Object.keys(baseLayers).forEach((baseName, index) => {
+                const option = document.createElement('label');
+                option.className = 'layer-option';
+
+                option.innerHTML = `
+                    <input type="radio" name="base-layer" value="${baseName}" ${index === 0 ? 'checked' : ''}>
+                    <span>${baseName}</span>
+                `;
+
+                option.querySelector('input').addEventListener('change', () => {
+                    Object.keys(baseLayers).forEach(name => {
+                        if (villageMap.hasLayer(baseLayers[name])) {
+                            villageMap.removeLayer(baseLayers[name]);
+                        }
+                    });
+                    baseLayers[baseName].addTo(villageMap);
+                });
+
+                baseSection.appendChild(option);
+            });
+
+            const overlaySection = document.createElement('div');
+            overlaySection.className = 'layer-section';
+            overlaySection.innerHTML = '<h5>Overlays</h5>';
+
+            Object.keys(overlayLayers).forEach((overlayName) => {
+                const option = document.createElement('label');
+                option.className = 'layer-option';
+
+                const isVisible = villageMap.hasLayer(overlayLayers[overlayName]);
+
+                option.innerHTML = `
+                    <input type="checkbox" value="${overlayName}" ${isVisible ? 'checked' : ''}>
+                    <span>${overlayName}</span>
+                `;
+
+                option.querySelector('input').addEventListener('change', (event) => {
+                    if (event.target.checked) {
+                        overlayLayers[overlayName].addTo(villageMap);
+                    } else {
+                        villageMap.removeLayer(overlayLayers[overlayName]);
+                    }
+                });
+
+                overlaySection.appendChild(option);
+            });
+
+            container.appendChild(baseSection);
+            container.appendChild(overlaySection);
+
+            console.log('Enhanced layer control initialized');
+        }
+
+function addSampleData() {
+    // Add FRA claims markers
+    const sampleClaims = [
+        { lat: 22.5726, lng: 78.9629, title: 'Claim 001', status: 'Approved' },
+        { lat: 22.5826, lng: 78.9729, title: 'Claim 002', status: 'Pending' },
+        { lat: 22.5626, lng: 78.9529, title: 'Claim 003', status: 'Approved' }
+    ];
+
+    sampleClaims.forEach(claim => {
+        const color = claim.status === 'Approved' ? 'green' : 'orange';
+        const marker = L.circleMarker([claim.lat, claim.lng], {
+            radius: 8,
+            fillColor: color,
+            color: '#000',
+            weight: 1,
+            opacity: 1,
+            fillOpacity: 0.8
+        });
+        marker.bindPopup(`<b>${claim.title}</b><br>Status: ${claim.status}`);
+        overlayLayers['FRA Claims'].addLayer(marker);
+    });
+
+    // Add village boundary
+    const villageBoundary = L.polygon([
+        [22.5626, 78.9429],
+        [22.5826, 78.9429], 
+        [22.5826, 78.9829],
+        [22.5626, 78.9829]
+    ], {
+        color: '#1E40AF',
+        fillColor: '#3B82F6',
+        fillOpacity: 0.2
+    });
+    villageBoundary.bindPopup('Khairwani Village Boundary');
+    overlayLayers['Village Boundaries'].addLayer(villageBoundary);
+
+    // Add infrastructure
+    const infrastructureData = [
+        { lat: 22.5750, lng: 78.9650, type: 'Hospital', name: 'PHC Khairwani' },
+        { lat: 22.5700, lng: 78.9600, type: 'School', name: 'Primary School' },
+        { lat: 22.5800, lng: 78.9700, type: 'Post Office', name: 'Khairwani PO' }
+    ];
+
+    infrastructureData.forEach(infra => {
+        const icon = infra.type === 'Hospital' ? '🏥' : 
+                    infra.type === 'School' ? '🏫' : '📮';
+        
+        const marker = L.marker([infra.lat, infra.lng], {
+            icon: L.divIcon({
+                html: `<div style="font-size: 20px;">${icon}</div>`,
+                className: 'custom-div-icon',
+                iconSize: [25, 25],
+                iconAnchor: [12, 12]
+            })
+        });
+        marker.bindPopup(`<strong>${infra.name}</strong><br>Type: ${infra.type}`);
+        overlayLayers['Infrastructure'].addLayer(marker);
+    });
+
+    // Add default layers to map
+    overlayLayers['Village Boundaries'].addTo(villageMap);
+    overlayLayers['FRA Claims'].addTo(villageMap);
+}
+
+
         function initializeChart() {
-            const ctx = document.getElementById('trendsChart').getContext('2d');
+            const canvas = document.getElementById('trendsChart');
+            if (!canvas) {
+                console.error('❌ Chart canvas not found in DOM');
+                return;
+            }
+
+            const ctx = canvas.getContext('2d');
+            console.log('Chart canvas:', canvas, 'Context:', ctx);
+
+
+            if (trendsChart) {
+                trendsChart.destroy();
+            }
+
             trendsChart = new Chart(ctx, {
                 type: 'line',
                 data: {
-                    labels: ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun'],
-                    datasets: [{
-                        label: 'FRA Claims Processed',
-                        data: [12, 19, 15, 25, 22, 30],
-                        borderColor: '#1E40AF',
-                        backgroundColor: 'rgba(30, 64, 175, 0.1)',
-                        tension: 0.4
-                    }, {
-                        label: 'Scheme Enrollments',
-                        data: [8, 15, 12, 18, 16, 24],
-                        borderColor: '#059669',
-                        backgroundColor: 'rgba(5, 150, 105, 0.1)',
-                        tension: 0.4
-                    }]
+                    labels: ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'],
+                    datasets: [
+                        {
+                            label: 'FRA Claims Processed',
+                            data: [12,19,15,25,22,30,28,35,32,40,38,45],
+                            borderColor: '#1E40AF',
+                            backgroundColor: 'rgba(30, 64, 175, 0.1)',
+                            borderWidth: 2,
+                            tension: 0.4,
+                            fill: true
+                        },
+                        {
+                            label: 'Scheme Enrollments',
+                            data: [8,15,12,18,16,24,22,28,26,32,30,36],
+                            borderColor: '#059669',
+                            backgroundColor: 'rgba(5,150,105,0.1)',
+                            borderWidth: 2,
+                            tension: 0.4,
+                            fill: true
+                        },
+                        {
+                            label: 'Infrastructure Projects',
+                            data: [3,5,4,7,6,9,8,11,10,13,12,15],
+                            borderColor: '#DC2626',
+                            backgroundColor: 'rgba(220,38,38,0.1)',
+                            borderWidth: 2,
+                            tension: 0.4,
+                            fill: true
+                        }
+                    ]
                 },
                 options: {
                     responsive: true,
                     maintainAspectRatio: false,
                     plugins: {
-                        legend: {
-                            position: 'top',
+                        legend: { position: 'top' },
+                        title: {
+                            display: true,
+                            text: 'Monthly Development Progress',
+                            font: { size: 14, weight: 'bold' },
+                            color: '#374151'
                         }
                     },
                     scales: {
-                        y: {
-                            beginAtZero: true
-                        }
+                        x: { grid: { color: 'rgba(0,0,0,0.1)' } },
+                        y: { beginAtZero: true, grid: { color: 'rgba(0,0,0,0.1)' } }
                     }
                 }
             });
+
+            console.log('✅ Trends chart initialized successfully');
         }
+
+
 
         function setupEventListeners() {
             // Village selection change
@@ -581,7 +941,11 @@
             const nav = document.querySelector('nav');
             nav.classList.toggle('hidden');
         }
+        
+
     </script>
+
+
 <script id="dhws-dataInjector" src="../public/dhws-data-injector.js"></script>
 </body>
 </html>
