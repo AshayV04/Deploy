@@ -1,10 +1,11 @@
 services:
-  - type: static
+  - type: web
     name: fra-atlas-frontend
+    runtime: static
     buildCommand: |
       npm install
       npm run build:css
-    publishDir: .
+    staticPublishPath: .
     routes:
       - type: rewrite
         source: /api/*
