@@ -16,7 +16,7 @@ services:
     name: fra-ocr-api
     plan: free
     env: python
-    pythonVersion: 3.11
+
     buildCommand: |
       apt-get update
       apt-get install -y tesseract-ocr libtesseract-dev poppler-utils libjpeg-dev zlib1g-dev libtiff-dev libfreetype6-dev
