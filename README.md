@@ -5,9 +5,9 @@ Modern static front-end pages styled with Tailwind CSS coupled with a Flask-base
 ## Project Layout
 
 - `index.html`, `pages/`, `css/`, `js/` – static client assets
-- `package.json` – Tailwind build scripts
+- `package.json` – Tailwind build scripts and Node server entry point
 - `OCR/` – Flask OCR API (`flask_ocr_api.py`, `requirements.txt`, seed `fra_claims.db`)
-- `.render.yaml` – Render multi-service configuration (static site + API)
+- `.render.yaml` – Render multi-service configuration (Node frontend + API)
 
 ## Local Development
 
@@ -16,10 +16,10 @@ Modern static front-end pages styled with Tailwind CSS coupled with a Flask-base
 ```bash
 npm install
 npm run build:css   # generate css/main.css from Tailwind
-npm run start       # optional: http-server (see package.json)
+npm run start       # serves the static assets and proxies /api to the OCR service
 ```
 
-`js/config.js` automatically points API calls to `http://localhost:5002/api` when you are on localhost. In production it expects `/api/...` to be proxied to the OCR service (handled via `.render.yaml`).
+`js/config.js` automatically points API calls to `http://localhost:5002/api` when you are on localhost. In production the Node server proxies `/api/...` to the OCR service defined by `OCR_API_URL`.
 
 ### OCR API
 
@@ -44,12 +44,11 @@ Environment options:
 
 This repo ships with `.render.yaml` so you can click “New Blueprint” in Render and select the repository.
 
-- **Static Site (`fra-atlas-frontend`)**
+- **Node Web Service (`fra-atlas-frontend`)**
   - Build: `npm install && npm run build:css`
-  - Publish: root directory
-  - Routes:
-    - `/api/*` → rewrites to the OCR service (update the hostname after the API service is created)
-    - `/*` → `index.html`
+  - Start: `npm run start` (binds to Render's `$PORT` and proxies `/api/*`)
+  - Environment variables:
+    - `OCR_API_URL` (point to the deployed OCR API base, e.g. `https://fra-ocr-api.onrender.com`)
 - **Python Web Service (`fra-ocr-api`)**
   - Build installs `tesseract-ocr`, `libtesseract-dev`, `poppler-utils`, then `pip install -r OCR/requirements.txt`
   - Start command: `cd OCR && gunicorn --bind 0.0.0.0:$PORT flask_ocr_api:app`
@@ -57,7 +56,7 @@ This repo ships with `.render.yaml` so you can click “New Blueprint” in Rend
     - `GEMINI_API_KEY` (mark as secret)
     - Optional overrides for `DB_FILE`, `GEMINI_MODEL`, etc.
 
-After the first deploy, edit `.render.yaml` or the Render dashboard to point the static-site `destination` in the `/api/*` rewrite to the actual OCR service URL (Render usually assigns `https://fra-ocr-api.onrender.com`).
+After the first deploy, set `OCR_API_URL` on the frontend service to the deployed OCR API hostname (Render usually assigns `https://fra-ocr-api.onrender.com`).
 
 ## Post-Deploy Checklist
 
@@ -71,4 +70,3 @@ After the first deploy, edit `.render.yaml` or the Render dashboard to point the
 - Commit the generated `css/main.css` after running `npm run build:css` so static hosting works without a build step
 - Do not commit local virtualenvs or API keys
 - Remove or rotate the default Gemini key if it was previously checked in
-

@@ -1,18 +1,14 @@
 services:
   - type: web
     name: fra-atlas-frontend
-    runtime: static
+    env: node
     buildCommand: |
       npm install
       npm run build:css
-    staticPublishPath: .
-    routes:
-      - type: rewrite
-        source: /api/*
-        destination: https://fra-ocr-api.onrender.com/api/$1
-      - type: rewrite
-        source: /*
-        destination: /index.html
+    startCommand: npm run start
+    envVars:
+      - key: OCR_API_URL
+        sync: false
   - type: web
     name: fra-ocr-api
     env: python
